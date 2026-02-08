@@ -2,10 +2,30 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+// CORS configuration with origin validation
+const getAllowedOrigins = () => {
+  const origins = [
+    "https://lovable.dev",
+    "https://id-preview--f5372d37-5445-4fed-ab0f-8a45ff025d26.lovable.app",
+  ];
+  
+  const frontendUrl = Deno.env.get("FRONTEND_URL");
+  if (frontendUrl) origins.push(frontendUrl);
+  
+  return origins;
+};
+
+const getCorsHeaders = (req: Request) => {
+  const origin = req.headers.get("Origin") || "";
+  const allowedOrigins = getAllowedOrigins();
+  const isAllowed = allowedOrigins.some(allowed => origin.startsWith(allowed) || origin.includes(".lovable.app"));
+  
+  return {
+    "Access-Control-Allow-Origin": isAllowed ? origin : allowedOrigins[0],
+    "Access-Control-Allow-Headers":
+      "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+    "Access-Control-Allow-Credentials": "true",
+  };
 };
 
 // Input validation schemas
@@ -31,6 +51,8 @@ const feedbackLoopSchema = z.object({
 });
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+  
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
