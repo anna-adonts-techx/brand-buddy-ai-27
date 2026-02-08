@@ -1,5 +1,8 @@
-import { Bell, Search } from "lucide-react";
+import { Bell, Search, LogOut } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 interface DashboardHeaderProps {
   title: string;
@@ -7,6 +10,17 @@ interface DashboardHeaderProps {
 }
 
 const DashboardHeader = ({ title, subtitle }: DashboardHeaderProps) => {
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    await signOut();
+    toast.success("Signed out successfully");
+    navigate("/auth");
+  };
+
+  const userInitial = user?.email?.charAt(0).toUpperCase() || "U";
+
   return (
     <header className="flex items-center justify-between px-8 py-5 border-b border-border bg-card/40 backdrop-blur-sm">
       <div>
@@ -25,8 +39,15 @@ const DashboardHeader = ({ title, subtitle }: DashboardHeaderProps) => {
           <Bell className="w-5 h-5" />
           <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-accent" />
         </button>
+        <button
+          onClick={handleSignOut}
+          className="p-2 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
+          title="Sign out"
+        >
+          <LogOut className="w-5 h-5" />
+        </button>
         <div className="w-9 h-9 rounded-full bg-gradient-accent flex items-center justify-center text-sm font-bold text-accent-foreground">
-          H
+          {userInitial}
         </div>
       </div>
     </header>
