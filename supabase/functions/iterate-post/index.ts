@@ -1,11 +1,21 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+// Input validation schema
+const iteratePostSchema = z.object({
+  variationId: z.string().min(1, "Variation ID is required").max(100),
+  caption: z.string().min(1, "Caption is required").max(5000, "Caption too long"),
+  userFeedback: z.string().max(2000, "Feedback too long").optional(),
+  brandProfile: z.record(z.unknown()).optional(),
+  feedbackType: z.enum(["tone", "wording", "cta", "shorter", "longer", "custom"]),
+});
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -41,7 +51,28 @@ serve(async (req) => {
 
     console.log("Authenticated user:", authData.user.id);
 
-    const { variationId, caption, userFeedback, brandProfile, feedbackType } = await req.json();
+    // Parse and validate input
+    let body;
+    try {
+      body = await req.json();
+    } catch {
+      return new Response(
+        JSON.stringify({ error: "Invalid JSON in request body" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const validation = iteratePostSchema.safeParse(body);
+    if (!validation.success) {
+      const errors = validation.error.errors.map(e => `${e.path.join(".")}: ${e.message}`).join(", ");
+      return new Response(
+        JSON.stringify({ error: `Invalid input: ${errors}` }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const { variationId, caption, userFeedback, brandProfile, feedbackType } = validation.data;
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     if (!LOVABLE_API_KEY) {

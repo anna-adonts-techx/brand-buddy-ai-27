@@ -1,11 +1,25 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+// Hex color regex pattern
+const hexColorRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
+
+// Input validation schema
+const generateImageSchema = z.object({
+  prompt: z.string().min(1, "Prompt is required").max(2000, "Prompt too long"),
+  textOverlay: z.string().max(100, "Text overlay too long").optional(),
+  brandColors: z.array(
+    z.string().regex(hexColorRegex, "Invalid hex color format")
+  ).max(10, "Maximum 10 colors").optional(),
+  aspectRatio: z.enum(["square", "story", "landscape", "portrait"]).optional(),
+});
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -41,7 +55,28 @@ serve(async (req) => {
 
     console.log("Authenticated user:", authData.user.id);
 
-    const { prompt, textOverlay, brandColors, aspectRatio } = await req.json();
+    // Parse and validate input
+    let body;
+    try {
+      body = await req.json();
+    } catch {
+      return new Response(
+        JSON.stringify({ error: "Invalid JSON in request body" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const validation = generateImageSchema.safeParse(body);
+    if (!validation.success) {
+      const errors = validation.error.errors.map(e => `${e.path.join(".")}: ${e.message}`).join(", ");
+      return new Response(
+        JSON.stringify({ error: `Invalid input: ${errors}` }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const { prompt, textOverlay, brandColors, aspectRatio } = validation.data;
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     if (!LOVABLE_API_KEY) {
