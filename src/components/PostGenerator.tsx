@@ -218,6 +218,49 @@ const PostGenerator = () => {
     }
   };
 
+  const handleExportToInstagram = async (variation: PostVariation) => {
+    // Copy caption to clipboard first
+    await navigator.clipboard.writeText(variation.caption);
+    toast.success("Caption copied! Opening Instagram...");
+    
+    // If there's an image, download it first
+    if (variation.imageUrl) {
+      const link = document.createElement("a");
+      link.href = variation.imageUrl;
+      link.download = `instagram-post-${variation.id}.png`;
+      link.click();
+      toast("Image downloaded! Upload it to Instagram.");
+    }
+    
+    // Open Instagram's web create post page (mobile app will open if available)
+    setTimeout(() => {
+      window.open("https://www.instagram.com/create/story", "_blank");
+    }, 500);
+  };
+
+  const handleExportToLinkedIn = async (variation: PostVariation) => {
+    // Copy caption to clipboard first
+    await navigator.clipboard.writeText(variation.caption);
+    
+    // LinkedIn share URL with pre-filled text
+    const shareUrl = `https://www.linkedin.com/sharing/share-offsite/?text=${encodeURIComponent(variation.caption)}`;
+    
+    toast.success("Caption copied! Opening LinkedIn...");
+    
+    // If there's an image, download it first
+    if (variation.imageUrl) {
+      const link = document.createElement("a");
+      link.href = variation.imageUrl;
+      link.download = `linkedin-post-${variation.id}.png`;
+      link.click();
+      toast("Image downloaded! You can upload it on LinkedIn.");
+    }
+    
+    setTimeout(() => {
+      window.open(shareUrl, "_blank");
+    }, 500);
+  };
+
   if (!currentPostPlan) {
     return (
       <div className="flex flex-col items-center justify-center h-64 text-center">
@@ -512,12 +555,22 @@ const PostGenerator = () => {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        navigator.clipboard.writeText(variation.caption);
-                        toast.success("Caption copied!");
+                        handleExportToInstagram(variation);
                       }}
-                      className="ml-auto p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+                      className="ml-auto p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-accent transition-colors"
+                      title="Export to Instagram"
                     >
-                      <Download className="w-4 h-4" />
+                      <Instagram className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleExportToLinkedIn(variation);
+                      }}
+                      className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-primary transition-colors"
+                      title="Export to LinkedIn"
+                    >
+                      <Linkedin className="w-4 h-4" />
                     </button>
                   </div>
                 </motion.div>
@@ -552,14 +605,26 @@ const PostGenerator = () => {
                     onClick={() => {
                       const v = generatedVariations.find((v) => v.id === selectedVariationId);
                       if (v) {
-                        navigator.clipboard.writeText(v.caption);
-                        toast.success("Post copied to clipboard!");
+                        handleExportToInstagram(v);
                       }
                     }}
                     className="bg-gradient-accent text-accent-foreground hover:opacity-90"
                   >
-                    <Download className="w-3.5 h-3.5 mr-2" />
-                    Export Post
+                    <Instagram className="w-3.5 h-3.5 mr-2" />
+                    Export to Instagram
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      const v = generatedVariations.find((v) => v.id === selectedVariationId);
+                      if (v) {
+                        handleExportToLinkedIn(v);
+                      }
+                    }}
+                    className="bg-gradient-primary text-primary-foreground hover:opacity-90"
+                  >
+                    <Linkedin className="w-3.5 h-3.5 mr-2" />
+                    Export to LinkedIn
                   </Button>
                 </div>
               </motion.div>
