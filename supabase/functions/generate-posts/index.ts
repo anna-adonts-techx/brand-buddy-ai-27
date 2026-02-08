@@ -92,14 +92,14 @@ serve(async (req) => {
     const { data: authData, error: authError } = await supabase.auth.getUser(token);
     
     if (authError || !authData?.user) {
-      console.error("Auth error:", authError?.message);
+      console.error("Authentication failed");
       return new Response(
         JSON.stringify({ error: "Unauthorized" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log("Authenticated user:", authData.user.id);
+    console.log("User authenticated successfully");
 
     // Parse and validate input
     let body;
