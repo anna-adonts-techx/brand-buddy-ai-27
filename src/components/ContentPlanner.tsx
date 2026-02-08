@@ -16,19 +16,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { useAppStore } from "@/lib/store";
+import { PlannedPost } from "@/lib/ai-service";
 
 type PostIntent = "announcement" | "event" | "partnership" | "achievement";
 type Platform = "linkedin" | "instagram" | "both";
-
-interface PlannedPost {
-  id: string;
-  intent: PostIntent;
-  platform: Platform;
-  title: string;
-  details: string;
-  date: string;
-  tone?: string;
-}
 
 const intentConfig: Record<PostIntent, { icon: React.ElementType; label: string; color: string }> = {
   announcement: { icon: Megaphone, label: "Announcement", color: "text-primary" },
@@ -37,45 +29,19 @@ const intentConfig: Record<PostIntent, { icon: React.ElementType; label: string;
   achievement: { icon: Trophy, label: "Achievement", color: "text-amber-400" },
 };
 
-const samplePosts: PlannedPost[] = [
-  {
-    id: "1",
-    intent: "event",
-    platform: "both",
-    title: "Hack-Nation Hackathon Launch",
-    details: "Announce the upcoming Hack-Nation hackathon with Super Bowl themed branding. Highlight prizes, dates, and registration link.",
-    date: "2026-02-15",
-    tone: "Exciting, energetic",
-  },
-  {
-    id: "2",
-    intent: "announcement",
-    platform: "linkedin",
-    title: "Speaker Lineup Reveal",
-    details: "Reveal keynote speakers for the hackathon. Include headshots and bios. Reference Olympic spirit of competition.",
-    date: "2026-02-18",
-    tone: "Professional, inspiring",
-  },
-  {
-    id: "3",
-    intent: "achievement",
-    platform: "instagram",
-    title: "Winner Announcement",
-    details: "Celebrate hackathon winners with trophy imagery and project screenshots. Include quotes from winning teams.",
-    date: "2026-02-22",
-    tone: "Celebratory, proud",
-  },
-];
+interface ContentPlannerProps {
+  onGenerate: (post: PlannedPost) => void;
+}
 
-const ContentPlanner = ({ onGenerate }: { onGenerate: (post: PlannedPost) => void }) => {
-  const [posts, setPosts] = useState<PlannedPost[]>(samplePosts);
+const ContentPlanner = ({ onGenerate }: ContentPlannerProps) => {
+  const { plannedPosts, addPlannedPost, removePlannedPost, setCurrentPostPlan, setActiveTab } = useAppStore();
   const [showForm, setShowForm] = useState(false);
   const [newPost, setNewPost] = useState<Partial<PlannedPost>>({
     intent: "announcement",
     platform: "both",
   });
 
-  const addPost = () => {
+  const handleAddPost = () => {
     if (!newPost.title) {
       toast.error("Please add a title");
       return;
@@ -88,15 +54,18 @@ const ContentPlanner = ({ onGenerate }: { onGenerate: (post: PlannedPost) => voi
       details: newPost.details || "",
       date: newPost.date || new Date().toISOString().split("T")[0],
       tone: newPost.tone,
+      additionalElements: newPost.additionalElements,
     };
-    setPosts((p) => [...p, post]);
+    addPlannedPost(post);
     setNewPost({ intent: "announcement", platform: "both" });
     setShowForm(false);
     toast.success("Post added to plan!");
   };
 
-  const removePost = (id: string) => {
-    setPosts((p) => p.filter((post) => post.id !== id));
+  const handleGenerate = (post: PlannedPost) => {
+    setCurrentPostPlan(post);
+    setActiveTab("generate");
+    onGenerate(post);
   };
 
   return (
@@ -109,7 +78,7 @@ const ContentPlanner = ({ onGenerate }: { onGenerate: (post: PlannedPost) => voi
           </div>
           <div>
             <h2 className="font-display text-xl font-bold text-foreground">Content Plan</h2>
-            <p className="text-sm text-muted-foreground">{posts.length} posts planned</p>
+            <p className="text-sm text-muted-foreground">{plannedPosts.length} posts planned</p>
           </div>
         </div>
         <Button
@@ -133,7 +102,7 @@ const ContentPlanner = ({ onGenerate }: { onGenerate: (post: PlannedPost) => voi
             <div className="glass rounded-xl p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-foreground mb-1.5 block">Post Title</label>
+                  <label className="text-sm font-medium text-foreground mb-1.5 block">Post Title *</label>
                   <Input
                     placeholder="e.g. Product Launch Announcement"
                     value={newPost.title || ""}
@@ -210,21 +179,32 @@ const ContentPlanner = ({ onGenerate }: { onGenerate: (post: PlannedPost) => voi
                 />
               </div>
 
-              <div>
-                <label className="text-sm font-medium text-foreground mb-1.5 block">Tone (optional)</label>
-                <Input
-                  placeholder="e.g. Professional, Playful, Urgent"
-                  value={newPost.tone || ""}
-                  onChange={(e) => setNewPost((p) => ({ ...p, tone: e.target.value }))}
-                  className="bg-secondary border-border text-foreground placeholder:text-muted-foreground"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-1.5 block">Tone (optional)</label>
+                  <Input
+                    placeholder="e.g. Professional, Playful, Urgent"
+                    value={newPost.tone || ""}
+                    onChange={(e) => setNewPost((p) => ({ ...p, tone: e.target.value }))}
+                    className="bg-secondary border-border text-foreground placeholder:text-muted-foreground"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-1.5 block">Additional Elements (RAG)</label>
+                  <Input
+                    placeholder="Speaker names, prizes, images to include..."
+                    value={newPost.additionalElements || ""}
+                    onChange={(e) => setNewPost((p) => ({ ...p, additionalElements: e.target.value }))}
+                    className="bg-secondary border-border text-foreground placeholder:text-muted-foreground"
+                  />
+                </div>
               </div>
 
               <div className="flex gap-3">
                 <Button variant="outline" onClick={() => setShowForm(false)} className="border-border text-foreground hover:bg-secondary">
                   Cancel
                 </Button>
-                <Button onClick={addPost} className="bg-gradient-primary text-primary-foreground hover:opacity-90">
+                <Button onClick={handleAddPost} className="bg-gradient-primary text-primary-foreground hover:opacity-90">
                   Add to Plan
                 </Button>
               </div>
@@ -235,7 +215,7 @@ const ContentPlanner = ({ onGenerate }: { onGenerate: (post: PlannedPost) => voi
 
       {/* Posts List */}
       <motion.div layout className="space-y-3">
-        {posts.map((post, index) => {
+        {plannedPosts.map((post, index) => {
           const config = intentConfig[post.intent];
           const Icon = config.icon;
           return (
@@ -245,45 +225,59 @@ const ContentPlanner = ({ onGenerate }: { onGenerate: (post: PlannedPost) => voi
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
-              className="glass rounded-xl p-5 flex items-center gap-4 group"
+              className="glass rounded-xl p-5 group"
             >
-              <div className={`w-10 h-10 rounded-lg bg-secondary flex items-center justify-center ${config.color}`}>
-                <Icon className="w-5 h-5" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-0.5">
-                  <h4 className="font-display font-semibold text-foreground truncate">{post.title}</h4>
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-muted-foreground shrink-0">
-                    {config.label}
-                  </span>
+              <div className="flex items-start gap-4">
+                <div className={`w-10 h-10 rounded-lg bg-secondary flex items-center justify-center shrink-0 ${config.color}`}>
+                  <Icon className="w-5 h-5" />
                 </div>
-                <p className="text-sm text-muted-foreground truncate">{post.details}</p>
-              </div>
-              <div className="flex items-center gap-3 shrink-0">
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  {(post.platform === "linkedin" || post.platform === "both") && <Linkedin className="w-3.5 h-3.5" />}
-                  {(post.platform === "instagram" || post.platform === "both") && <Instagram className="w-3.5 h-3.5" />}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <h4 className="font-display font-semibold text-foreground truncate">{post.title}</h4>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-muted-foreground shrink-0">
+                      {config.label}
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted-foreground line-clamp-2 mb-2">{post.details}</p>
+                  {post.additionalElements && (
+                    <p className="text-xs text-primary/70 line-clamp-1">
+                      📎 {post.additionalElements}
+                    </p>
+                  )}
                 </div>
-                <span className="text-xs text-muted-foreground font-mono">{post.date}</span>
-                <Button
-                  size="sm"
-                  onClick={() => onGenerate(post)}
-                  className="bg-gradient-primary text-primary-foreground hover:opacity-90 text-xs"
-                >
-                  <Sparkles className="w-3.5 h-3.5 mr-1" />
-                  Generate
-                </Button>
-                <button
-                  onClick={() => removePost(post.id)}
-                  className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-destructive/15 text-muted-foreground hover:text-destructive transition-all"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                <div className="flex items-center gap-3 shrink-0">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    {(post.platform === "linkedin" || post.platform === "both") && <Linkedin className="w-3.5 h-3.5" />}
+                    {(post.platform === "instagram" || post.platform === "both") && <Instagram className="w-3.5 h-3.5" />}
+                  </div>
+                  <span className="text-xs text-muted-foreground font-mono">{post.date}</span>
+                  <Button
+                    size="sm"
+                    onClick={() => handleGenerate(post)}
+                    className="bg-gradient-primary text-primary-foreground hover:opacity-90 text-xs"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 mr-1" />
+                    Generate
+                  </Button>
+                  <button
+                    onClick={() => removePlannedPost(post.id)}
+                    className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-destructive/15 text-muted-foreground hover:text-destructive transition-all"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             </motion.div>
           );
         })}
       </motion.div>
+
+      {plannedPosts.length === 0 && (
+        <div className="text-center py-12 text-muted-foreground">
+          <CalendarDays className="w-12 h-12 mx-auto mb-3 opacity-50" />
+          <p>No posts planned yet. Add your first post above!</p>
+        </div>
+      )}
     </div>
   );
 };

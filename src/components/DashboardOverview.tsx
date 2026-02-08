@@ -8,46 +8,78 @@ import {
   Linkedin,
   Instagram,
   Zap,
+  Lightbulb,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAppStore } from "@/lib/store";
 import heroBg from "@/assets/hero-bg.jpg";
 
-interface DashboardOverviewProps {
-  onNavigate: (tab: string) => void;
-}
+const DashboardOverview = () => {
+  const { setActiveTab, brandProfile, plannedPosts, generatedVariations } = useAppStore();
 
-const stats = [
-  { label: "Posts Generated", value: "0", icon: FileImage, change: "Ready to start" },
-  { label: "Brand Profiles", value: "0", icon: Sparkles, change: "Set up your brand" },
-  { label: "Avg. Quality Score", value: "—", icon: TrendingUp, change: "Generate to see" },
-  { label: "Scheduled Posts", value: "3", icon: Calendar, change: "In content plan" },
-];
+  const stats = [
+    {
+      label: "Posts Generated",
+      value: generatedVariations.length.toString(),
+      icon: FileImage,
+      change: generatedVariations.length > 0 ? "Ready to export" : "Ready to start",
+    },
+    {
+      label: "Brand Profile",
+      value: brandProfile ? "1" : "0",
+      icon: Sparkles,
+      change: brandProfile ? "Configured" : "Set up your brand",
+    },
+    {
+      label: "Avg. Quality Score",
+      value: generatedVariations.length > 0
+        ? Math.round(generatedVariations.reduce((a, b) => a + b.qualityScore, 0) / generatedVariations.length).toString()
+        : "—",
+      icon: TrendingUp,
+      change: generatedVariations.length > 0 ? "Across variations" : "Generate to see",
+    },
+    {
+      label: "Planned Posts",
+      value: plannedPosts.length.toString(),
+      icon: Calendar,
+      change: "In content plan",
+    },
+  ];
 
-const quickActions = [
-  {
-    title: "Set Up Brand",
-    description: "Analyze your brand voice and visual identity",
-    icon: Sparkles,
-    tab: "brand",
-    gradient: "bg-gradient-primary",
-  },
-  {
-    title: "Plan Content",
-    description: "Create your posting schedule and intents",
-    icon: Calendar,
-    tab: "planner",
-    gradient: "bg-gradient-accent",
-  },
-  {
-    title: "Generate Posts",
-    description: "AI-powered post creation with feedback loops",
-    icon: Zap,
-    tab: "generate",
-    gradient: "bg-gradient-primary",
-  },
-];
+  const quickActions = [
+    {
+      title: "Set Up Brand",
+      description: "Analyze your brand voice and visual identity with AI",
+      icon: Sparkles,
+      tab: "brand",
+      gradient: "bg-gradient-primary",
+      done: !!brandProfile,
+    },
+    {
+      title: "Plan Content",
+      description: "Create your posting schedule with intents & elements",
+      icon: Calendar,
+      tab: "planner",
+      gradient: "bg-gradient-accent",
+      done: plannedPosts.length > 0,
+    },
+    {
+      title: "Generate Posts",
+      description: "AI-powered post creation with self-feedback loops",
+      icon: Zap,
+      tab: "generate",
+      gradient: "bg-gradient-primary",
+      done: generatedVariations.length > 0,
+    },
+  ];
 
-const DashboardOverview = ({ onNavigate }: DashboardOverviewProps) => {
+  const suggestions = [
+    "Announce the Hack-Nation hackathon with Super Bowl themed visuals",
+    "Create a speaker spotlight series for LinkedIn",
+    "Post winner announcements with celebratory Instagram stories",
+    "Share behind-the-scenes content from the event prep",
+  ];
+
   return (
     <div className="space-y-8">
       {/* Hero */}
@@ -73,15 +105,15 @@ const DashboardOverview = ({ onNavigate }: DashboardOverviewProps) => {
           </p>
           <div className="flex gap-3">
             <Button
-              onClick={() => onNavigate("brand")}
+              onClick={() => setActiveTab("brand")}
               className="bg-gradient-primary text-primary-foreground hover:opacity-90 h-11"
             >
               <Sparkles className="w-4 h-4 mr-2" />
-              Get Started
+              {brandProfile ? "Update Brand" : "Get Started"}
             </Button>
             <Button
               variant="outline"
-              onClick={() => onNavigate("planner")}
+              onClick={() => setActiveTab("planner")}
               className="border-border text-foreground hover:bg-secondary h-11"
             >
               View Content Plan
@@ -126,9 +158,12 @@ const DashboardOverview = ({ onNavigate }: DashboardOverviewProps) => {
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 + i * 0.05 }}
-                onClick={() => onNavigate(action.tab)}
-                className="glass rounded-xl p-6 text-left group hover:border-primary/30 transition-all duration-300"
+                onClick={() => setActiveTab(action.tab)}
+                className="glass rounded-xl p-6 text-left group hover:border-primary/30 transition-all duration-300 relative"
               >
+                {action.done && (
+                  <div className="absolute top-4 right-4 w-2 h-2 rounded-full bg-emerald-400" />
+                )}
                 <div className={`w-10 h-10 rounded-lg ${action.gradient} flex items-center justify-center mb-4`}>
                   <Icon className="w-5 h-5 text-primary-foreground" />
                 </div>
@@ -140,6 +175,33 @@ const DashboardOverview = ({ onNavigate }: DashboardOverviewProps) => {
               </motion.button>
             );
           })}
+        </div>
+      </div>
+
+      {/* Proactive Suggestions */}
+      <div>
+        <div className="flex items-center gap-2 mb-4">
+          <Lightbulb className="w-5 h-5 text-accent" />
+          <h2 className="font-display text-lg font-bold text-foreground">Content Suggestions</h2>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          {suggestions.map((suggestion, i) => (
+            <motion.button
+              key={i}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 + i * 0.05 }}
+              onClick={() => setActiveTab("planner")}
+              className="glass rounded-lg p-4 text-left hover:border-primary/30 transition-all group"
+            >
+              <p className="text-sm text-foreground/80 group-hover:text-foreground transition-colors">
+                {suggestion}
+              </p>
+              <span className="text-xs text-primary mt-2 inline-block opacity-0 group-hover:opacity-100 transition-opacity">
+                Add to plan →
+              </span>
+            </motion.button>
+          ))}
         </div>
       </div>
 

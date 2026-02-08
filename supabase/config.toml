@@ -1,0 +1,16 @@
+project_id = "ispmvlmsbnkpvuqrdgtn"
+
+[functions.analyze-brand]
+verify_jwt = false
+
+[functions.generate-posts]
+verify_jwt = false
+
+[functions.feedback-loop]
+verify_jwt = false
+
+[functions.generate-image]
+verify_jwt = false
+
+[functions.iterate-post]
+verify_jwt = false
