@@ -47,7 +47,7 @@ const BrandSetup = () => {
       toast.success("Brand profile analyzed!");
     } catch (error) {
       console.error("Brand analysis failed:", error);
-      toast.error(error instanceof Error ? error.message : "Analysis failed");
+      toast.error("Unable to analyze brand. Please try again.");
     } finally {
       setAnalyzing(false);
     }

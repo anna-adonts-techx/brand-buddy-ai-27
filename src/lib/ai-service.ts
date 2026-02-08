@@ -71,7 +71,10 @@ export async function analyzeBrand(
     body: { companyName, website, description, existingPosts },
   });
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error("Brand analysis error:", error);
+    throw new Error("Unable to analyze brand. Please try again.");
+  }
   
   return {
     companyName,
@@ -91,7 +94,10 @@ export async function generatePosts(
     body: { postPlan, brandProfile, platform, feedbackHistory },
   });
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error("Post generation error:", error);
+    throw new Error("Unable to generate posts. Please try again.");
+  }
   
   // Add platform to each variation
   return {
@@ -110,7 +116,10 @@ export async function runFeedbackLoop(
     body: { variation, brandProfile },
   });
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error("Feedback loop error:", error);
+    throw new Error("Unable to run quality checks. Please try again.");
+  }
   return data;
 }
 
@@ -124,7 +133,10 @@ export async function generatePostImage(
     body: { prompt, textOverlay, brandColors, aspectRatio },
   });
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error("Image generation error:", error);
+    throw new Error("Unable to generate image. Please try again.");
+  }
   return data;
 }
 
@@ -139,6 +151,9 @@ export async function iteratePost(
     body: { variationId, caption, userFeedback, brandProfile, feedbackType },
   });
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error("Post iteration error:", error);
+    throw new Error("Unable to iterate post. Please try again.");
+  }
   return data;
 }
