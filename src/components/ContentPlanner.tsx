@@ -11,6 +11,7 @@ import {
   Trophy,
   Trash2,
   Sparkles,
+  Pencil,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,8 +35,9 @@ interface ContentPlannerProps {
 }
 
 const ContentPlanner = ({ onGenerate }: ContentPlannerProps) => {
-  const { plannedPosts, addPlannedPost, removePlannedPost, setCurrentPostPlan, setActiveTab } = useAppStore();
+  const { plannedPosts, addPlannedPost, removePlannedPost, updatePlannedPost, setCurrentPostPlan, setActiveTab } = useAppStore();
   const [showForm, setShowForm] = useState(false);
+  const [editingPost, setEditingPost] = useState<PlannedPost | null>(null);
   const [newPost, setNewPost] = useState<Partial<PlannedPost>>({
     intent: "announcement",
     platform: "both",
@@ -46,20 +48,58 @@ const ContentPlanner = ({ onGenerate }: ContentPlannerProps) => {
       toast.error("Please add a title");
       return;
     }
-    const post: PlannedPost = {
-      id: Date.now().toString(),
-      intent: newPost.intent || "announcement",
-      platform: newPost.platform || "both",
-      title: newPost.title || "",
-      details: newPost.details || "",
-      date: newPost.date || new Date().toISOString().split("T")[0],
-      tone: newPost.tone,
-      additionalElements: newPost.additionalElements,
-    };
-    addPlannedPost(post);
+    
+    if (editingPost) {
+      // Update existing post
+      updatePlannedPost(editingPost.id, {
+        intent: newPost.intent || "announcement",
+        platform: newPost.platform || "both",
+        title: newPost.title || "",
+        details: newPost.details || "",
+        date: newPost.date || new Date().toISOString().split("T")[0],
+        tone: newPost.tone,
+        additionalElements: newPost.additionalElements,
+      });
+      setEditingPost(null);
+      toast.success("Post updated!");
+    } else {
+      // Add new post
+      const post: PlannedPost = {
+        id: Date.now().toString(),
+        intent: newPost.intent || "announcement",
+        platform: newPost.platform || "both",
+        title: newPost.title || "",
+        details: newPost.details || "",
+        date: newPost.date || new Date().toISOString().split("T")[0],
+        tone: newPost.tone,
+        additionalElements: newPost.additionalElements,
+      };
+      addPlannedPost(post);
+      toast.success("Post added to plan!");
+    }
+    
     setNewPost({ intent: "announcement", platform: "both" });
     setShowForm(false);
-    toast.success("Post added to plan!");
+  };
+
+  const handleEditPost = (post: PlannedPost) => {
+    setEditingPost(post);
+    setNewPost({
+      intent: post.intent,
+      platform: post.platform,
+      title: post.title,
+      details: post.details,
+      date: post.date,
+      tone: post.tone,
+      additionalElements: post.additionalElements,
+    });
+    setShowForm(true);
+  };
+
+  const handleCancelForm = () => {
+    setShowForm(false);
+    setEditingPost(null);
+    setNewPost({ intent: "announcement", platform: "both" });
   };
 
   const handleGenerate = (post: PlannedPost) => {
@@ -201,11 +241,11 @@ const ContentPlanner = ({ onGenerate }: ContentPlannerProps) => {
               </div>
 
               <div className="flex gap-3">
-                <Button variant="outline" onClick={() => setShowForm(false)} className="border-border text-foreground hover:bg-secondary">
+                <Button variant="outline" onClick={handleCancelForm} className="border-border text-foreground hover:bg-secondary">
                   Cancel
                 </Button>
                 <Button onClick={handleAddPost} className="bg-gradient-primary text-primary-foreground hover:opacity-90">
-                  Add to Plan
+                  {editingPost ? "Update Post" : "Add to Plan"}
                 </Button>
               </div>
             </div>
@@ -259,6 +299,12 @@ const ContentPlanner = ({ onGenerate }: ContentPlannerProps) => {
                     <Sparkles className="w-3.5 h-3.5 mr-1" />
                     Generate
                   </Button>
+                  <button
+                    onClick={() => handleEditPost(post)}
+                    className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-primary/15 text-muted-foreground hover:text-primary transition-all"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
                   <button
                     onClick={() => removePlannedPost(post.id)}
                     className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-destructive/15 text-muted-foreground hover:text-destructive transition-all"
