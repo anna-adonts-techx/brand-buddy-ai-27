@@ -11,6 +11,8 @@ import {
   Trophy,
   Trash2,
   Sparkles,
+  Edit3,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,8 +36,9 @@ interface ContentPlannerProps {
 }
 
 const ContentPlanner = ({ onGenerate }: ContentPlannerProps) => {
-  const { plannedPosts, addPlannedPost, removePlannedPost, setCurrentPostPlan, setActiveTab } = useAppStore();
+  const { plannedPosts, addPlannedPost, removePlannedPost, updatePlannedPost, setCurrentPostPlan, setActiveTab } = useAppStore();
   const [showForm, setShowForm] = useState(false);
+  const [editingPost, setEditingPost] = useState<PlannedPost | null>(null);
   const [newPost, setNewPost] = useState<Partial<PlannedPost>>({
     intent: "announcement",
     platform: "both",
@@ -66,6 +69,39 @@ const ContentPlanner = ({ onGenerate }: ContentPlannerProps) => {
     setCurrentPostPlan(post);
     setActiveTab("generate");
     onGenerate(post);
+  };
+
+  const handleEditPost = (post: PlannedPost) => {
+    setEditingPost(post);
+    setNewPost(post);
+    setShowForm(true);
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingPost) return;
+    if (!newPost.title) {
+      toast.error("Please add a title");
+      return;
+    }
+    updatePlannedPost(editingPost.id, {
+      intent: newPost.intent || "announcement",
+      platform: newPost.platform || "both",
+      title: newPost.title || "",
+      details: newPost.details || "",
+      date: newPost.date || new Date().toISOString().split("T")[0],
+      tone: newPost.tone,
+      additionalElements: newPost.additionalElements,
+    });
+    setEditingPost(null);
+    setNewPost({ intent: "announcement", platform: "both" });
+    setShowForm(false);
+    toast.success("Post updated!");
+  };
+
+  const handleCancelEdit = () => {
+    setEditingPost(null);
+    setNewPost({ intent: "announcement", platform: "both" });
+    setShowForm(false);
   };
 
   return (
@@ -100,6 +136,17 @@ const ContentPlanner = ({ onGenerate }: ContentPlannerProps) => {
             className="overflow-hidden"
           >
             <div className="glass rounded-xl p-6 space-y-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-display font-semibold text-foreground">
+                  {editingPost ? "Edit Post" : "New Post"}
+                </h3>
+                <button
+                  onClick={handleCancelEdit}
+                  className="p-1 rounded-lg hover:bg-secondary text-muted-foreground"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-foreground mb-1.5 block">Post Title *</label>
@@ -201,11 +248,14 @@ const ContentPlanner = ({ onGenerate }: ContentPlannerProps) => {
               </div>
 
               <div className="flex gap-3">
-                <Button variant="outline" onClick={() => setShowForm(false)} className="border-border text-foreground hover:bg-secondary">
+                <Button variant="outline" onClick={handleCancelEdit} className="border-border text-foreground hover:bg-secondary">
                   Cancel
                 </Button>
-                <Button onClick={handleAddPost} className="bg-gradient-primary text-primary-foreground hover:opacity-90">
-                  Add to Plan
+                <Button 
+                  onClick={editingPost ? handleSaveEdit : handleAddPost} 
+                  className="bg-gradient-primary text-primary-foreground hover:opacity-90"
+                >
+                  {editingPost ? "Save Changes" : "Add to Plan"}
                 </Button>
               </div>
             </div>
@@ -251,6 +301,13 @@ const ContentPlanner = ({ onGenerate }: ContentPlannerProps) => {
                     {(post.platform === "instagram" || post.platform === "both") && <Instagram className="w-3.5 h-3.5" />}
                   </div>
                   <span className="text-xs text-muted-foreground font-mono">{post.date}</span>
+                  <button
+                    onClick={() => handleEditPost(post)}
+                    className="p-1.5 rounded-lg hover:bg-primary/15 text-muted-foreground hover:text-primary transition-all"
+                    title="Edit post"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                  </button>
                   <Button
                     size="sm"
                     onClick={() => handleGenerate(post)}
