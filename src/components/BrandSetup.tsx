@@ -1,61 +1,71 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Globe, Upload, Sparkles, CheckCircle2, Loader2, Palette, MessageSquare, Eye } from "lucide-react";
+import { Globe, Upload, Sparkles, CheckCircle2, Loader2, Palette, MessageSquare, Eye, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { useAppStore } from "@/lib/store";
+import { analyzeBrand, BrandProfile } from "@/lib/ai-service";
 
-interface BrandProfile {
+interface BrandInputs {
   companyName: string;
   website: string;
   description: string;
-  voice: string;
-  colors: string[];
-  style: string;
+  existingPosts: string[];
 }
-
-const defaultProfile: BrandProfile = {
-  companyName: "",
-  website: "",
-  description: "",
-  voice: "",
-  colors: [],
-  style: "",
-};
 
 const BrandSetup = () => {
   const [step, setStep] = useState(0);
-  const [profile, setProfile] = useState<BrandProfile>(defaultProfile);
+  const [inputs, setInputs] = useState<BrandInputs>({
+    companyName: "",
+    website: "",
+    description: "",
+    existingPosts: [],
+  });
+  const [newPost, setNewPost] = useState("");
   const [analyzing, setAnalyzing] = useState(false);
-  const [analyzed, setAnalyzed] = useState(false);
+  
+  const { brandProfile, setBrandProfile } = useAppStore();
 
-  const handleAnalyze = () => {
-    if (!profile.companyName) {
+  const handleAnalyze = async () => {
+    if (!inputs.companyName) {
       toast.error("Please enter a company name");
       return;
     }
+    
     setAnalyzing(true);
-    setTimeout(() => {
-      setProfile((p) => ({
-        ...p,
-        voice: "Professional yet approachable. Uses action-oriented language with occasional emojis. Focuses on innovation and community building.",
-        colors: ["#3B82F6", "#F97316", "#1E1B4B", "#F8FAFC"],
-        style: "Modern, clean layouts with bold typography. Prefers gradient accents and dynamic imagery. Uses short, punchy captions with clear CTAs.",
-      }));
-      setAnalyzing(false);
-      setAnalyzed(true);
+    try {
+      const profile = await analyzeBrand(
+        inputs.companyName,
+        inputs.website,
+        inputs.description,
+        inputs.existingPosts
+      );
+      setBrandProfile(profile);
       setStep(1);
       toast.success("Brand profile analyzed!");
-    }, 2500);
+    } catch (error) {
+      console.error("Brand analysis failed:", error);
+      toast.error(error instanceof Error ? error.message : "Analysis failed");
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
+  const addExistingPost = () => {
+    if (newPost.trim()) {
+      setInputs((prev) => ({
+        ...prev,
+        existingPosts: [...prev.existingPosts, newPost.trim()],
+      }));
+      setNewPost("");
+    }
   };
 
   const staggerChildren = {
     hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: { staggerChildren: 0.1 },
-    },
+    show: { opacity: 1, transition: { staggerChildren: 0.1 } },
   };
 
   const fadeUp = {
@@ -102,11 +112,11 @@ const BrandSetup = () => {
 
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium text-foreground mb-1.5 block">Company Name</label>
+                <label className="text-sm font-medium text-foreground mb-1.5 block">Company Name *</label>
                 <Input
                   placeholder="e.g. Hack-Nation"
-                  value={profile.companyName}
-                  onChange={(e) => setProfile((p) => ({ ...p, companyName: e.target.value }))}
+                  value={inputs.companyName}
+                  onChange={(e) => setInputs((p) => ({ ...p, companyName: e.target.value }))}
                   className="bg-secondary border-border text-foreground placeholder:text-muted-foreground"
                 />
               </div>
@@ -114,17 +124,17 @@ const BrandSetup = () => {
                 <label className="text-sm font-medium text-foreground mb-1.5 block">Website URL</label>
                 <Input
                   placeholder="https://hacknation.com"
-                  value={profile.website}
-                  onChange={(e) => setProfile((p) => ({ ...p, website: e.target.value }))}
+                  value={inputs.website}
+                  onChange={(e) => setInputs((p) => ({ ...p, website: e.target.value }))}
                   className="bg-secondary border-border text-foreground placeholder:text-muted-foreground"
                 />
               </div>
               <div>
                 <label className="text-sm font-medium text-foreground mb-1.5 block">Brand Description</label>
                 <Textarea
-                  placeholder="What does your company do? Who is your audience?"
-                  value={profile.description}
-                  onChange={(e) => setProfile((p) => ({ ...p, description: e.target.value }))}
+                  placeholder="What does your company do? Who is your audience? What's your mission?"
+                  value={inputs.description}
+                  onChange={(e) => setInputs((p) => ({ ...p, description: e.target.value }))}
                   className="bg-secondary border-border text-foreground placeholder:text-muted-foreground min-h-[100px]"
                 />
               </div>
@@ -137,16 +147,41 @@ const BrandSetup = () => {
                 <Upload className="w-5 h-5 text-accent" />
               </div>
               <div>
-                <h3 className="font-display font-semibold text-foreground">Existing Content</h3>
-                <p className="text-sm text-muted-foreground">Upload existing posts or brand guidelines</p>
+                <h3 className="font-display font-semibold text-foreground">Existing Posts (Optional)</h3>
+                <p className="text-sm text-muted-foreground">Paste existing LinkedIn/Instagram posts for voice analysis</p>
               </div>
             </div>
-            <div className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-primary/50 transition-colors cursor-pointer">
-              <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
-              <p className="text-sm text-muted-foreground">
-                Drag & drop files here, or <span className="text-primary cursor-pointer">browse</span>
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">PDFs, images, or text files</p>
+            
+            <div className="space-y-3">
+              <div className="flex gap-2">
+                <Textarea
+                  placeholder="Paste an existing post here to help AI understand your brand voice..."
+                  value={newPost}
+                  onChange={(e) => setNewPost(e.target.value)}
+                  className="bg-secondary border-border text-foreground placeholder:text-muted-foreground min-h-[80px]"
+                />
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={addExistingPost}
+                disabled={!newPost.trim()}
+                className="border-border text-foreground hover:bg-secondary"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Post
+              </Button>
+              
+              {inputs.existingPosts.length > 0 && (
+                <div className="space-y-2 mt-4">
+                  <p className="text-xs text-muted-foreground">{inputs.existingPosts.length} post(s) added:</p>
+                  {inputs.existingPosts.map((post, i) => (
+                    <div key={i} className="p-3 bg-secondary rounded-lg text-sm text-foreground/80 line-clamp-2">
+                      {post}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </motion.div>
 
@@ -159,7 +194,7 @@ const BrandSetup = () => {
               {analyzing ? (
                 <>
                   <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  Analyzing Brand...
+                  Analyzing Brand with AI...
                 </>
               ) : (
                 <>
@@ -173,7 +208,7 @@ const BrandSetup = () => {
       )}
 
       {/* Step 1: Brand Voice */}
-      {step === 1 && analyzed && (
+      {step === 1 && brandProfile && (
         <motion.div variants={staggerChildren} initial="hidden" animate="show" className="space-y-6">
           <motion.div variants={fadeUp} className="glass rounded-xl p-6">
             <div className="flex items-center gap-3 mb-4">
@@ -185,11 +220,36 @@ const BrandSetup = () => {
                 <p className="text-sm text-muted-foreground">AI-inferred tone and messaging style</p>
               </div>
             </div>
-            <Textarea
-              value={profile.voice}
-              onChange={(e) => setProfile((p) => ({ ...p, voice: e.target.value }))}
-              className="bg-secondary border-border text-foreground min-h-[120px]"
-            />
+            
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className="p-4 bg-secondary rounded-lg">
+                <p className="text-xs text-muted-foreground mb-1">Tone</p>
+                <p className="text-sm font-medium text-foreground">{brandProfile.voice?.tone || "Professional"}</p>
+              </div>
+              <div className="p-4 bg-secondary rounded-lg">
+                <p className="text-xs text-muted-foreground mb-1">Emoji Usage</p>
+                <p className="text-sm font-medium text-foreground capitalize">{brandProfile.voice?.emojiUsage || "Moderate"}</p>
+              </div>
+              <div className="p-4 bg-secondary rounded-lg">
+                <p className="text-xs text-muted-foreground mb-1">CTA Style</p>
+                <p className="text-sm font-medium text-foreground">{brandProfile.voice?.ctaStyle || "Action-oriented"}</p>
+              </div>
+              <div className="p-4 bg-secondary rounded-lg">
+                <p className="text-xs text-muted-foreground mb-1">Target Audience</p>
+                <p className="text-sm font-medium text-foreground">{brandProfile.messagingPatterns?.targetAudience || "Professionals"}</p>
+              </div>
+            </div>
+            
+            <div className="p-4 bg-secondary rounded-lg">
+              <p className="text-xs text-muted-foreground mb-2">Language Patterns</p>
+              <div className="flex flex-wrap gap-2">
+                {(brandProfile.voice?.languagePatterns || ["Innovation", "Community"]).map((pattern, i) => (
+                  <span key={i} className="px-2 py-1 text-xs bg-primary/10 text-primary rounded-full">
+                    {pattern}
+                  </span>
+                ))}
+              </div>
+            </div>
           </motion.div>
 
           <motion.div variants={fadeUp} className="flex gap-3">
@@ -199,7 +259,7 @@ const BrandSetup = () => {
             <Button
               onClick={() => {
                 setStep(2);
-                toast.success("Brand voice saved!");
+                toast.success("Brand voice confirmed!");
               }}
               className="flex-1 bg-gradient-primary text-primary-foreground hover:opacity-90"
             >
@@ -210,7 +270,7 @@ const BrandSetup = () => {
       )}
 
       {/* Step 2: Visual Identity */}
-      {step === 2 && (
+      {step === 2 && brandProfile && (
         <motion.div variants={staggerChildren} initial="hidden" animate="show" className="space-y-6">
           <motion.div variants={fadeUp} className="glass rounded-xl p-6">
             <div className="flex items-center gap-3 mb-4">
@@ -219,11 +279,11 @@ const BrandSetup = () => {
               </div>
               <div>
                 <h3 className="font-display font-semibold text-foreground">Brand Colors</h3>
-                <p className="text-sm text-muted-foreground">Detected from your brand assets</p>
+                <p className="text-sm text-muted-foreground">AI-suggested color palette</p>
               </div>
             </div>
-            <div className="flex gap-3">
-              {profile.colors.map((color, i) => (
+            <div className="flex gap-3 flex-wrap">
+              {(brandProfile.visualIdentity?.colors || ["#3B82F6", "#F97316", "#1E1B4B", "#F8FAFC"]).map((color, i) => (
                 <div key={i} className="flex flex-col items-center gap-2">
                   <div
                     className="w-16 h-16 rounded-xl shadow-card border border-border"
@@ -232,9 +292,6 @@ const BrandSetup = () => {
                   <span className="text-xs text-muted-foreground font-mono">{color}</span>
                 </div>
               ))}
-              <button className="w-16 h-16 rounded-xl border-2 border-dashed border-border flex items-center justify-center text-muted-foreground hover:border-primary/50 transition-colors">
-                +
-              </button>
             </div>
           </motion.div>
 
@@ -248,11 +305,20 @@ const BrandSetup = () => {
                 <p className="text-sm text-muted-foreground">Layout and design preferences</p>
               </div>
             </div>
-            <Textarea
-              value={profile.style}
-              onChange={(e) => setProfile((p) => ({ ...p, style: e.target.value }))}
-              className="bg-secondary border-border text-foreground min-h-[100px]"
-            />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 bg-secondary rounded-lg">
+                <p className="text-xs text-muted-foreground mb-1">Layout Style</p>
+                <p className="text-sm font-medium text-foreground">{brandProfile.visualIdentity?.layoutStyle || "Modern, clean"}</p>
+              </div>
+              <div className="p-4 bg-secondary rounded-lg">
+                <p className="text-xs text-muted-foreground mb-1">Typography</p>
+                <p className="text-sm font-medium text-foreground">{brandProfile.visualIdentity?.typographyStyle || "Bold headers, clean body"}</p>
+              </div>
+            </div>
+          </motion.div>
+
+          <motion.div variants={fadeUp} className="glass rounded-xl p-4">
+            <p className="text-sm text-foreground/80">{brandProfile.summary}</p>
           </motion.div>
 
           <motion.div variants={fadeUp} className="flex gap-3">

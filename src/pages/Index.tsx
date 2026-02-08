@@ -1,10 +1,10 @@
-import { useState } from "react";
 import AppSidebar from "@/components/AppSidebar";
 import DashboardHeader from "@/components/DashboardHeader";
 import DashboardOverview from "@/components/DashboardOverview";
 import BrandSetup from "@/components/BrandSetup";
 import ContentPlanner from "@/components/ContentPlanner";
 import PostGenerator from "@/components/PostGenerator";
+import { useAppStore } from "@/lib/store";
 
 const headerConfig: Record<string, { title: string; subtitle: string }> = {
   dashboard: { title: "Dashboard", subtitle: "Your AI social media command center" },
@@ -16,7 +16,7 @@ const headerConfig: Record<string, { title: string; subtitle: string }> = {
 };
 
 const Index = () => {
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const { activeTab, setActiveTab, setCurrentPostPlan } = useAppStore();
   const header = headerConfig[activeTab] || headerConfig.dashboard;
 
   return (
@@ -25,10 +25,10 @@ const Index = () => {
       <div className="flex-1 flex flex-col min-h-screen">
         <DashboardHeader title={header.title} subtitle={header.subtitle} />
         <main className="flex-1 p-8 overflow-y-auto">
-          {activeTab === "dashboard" && <DashboardOverview onNavigate={setActiveTab} />}
+          {activeTab === "dashboard" && <DashboardOverview />}
           {activeTab === "brand" && <BrandSetup />}
           {activeTab === "planner" && (
-            <ContentPlanner onGenerate={() => setActiveTab("generate")} />
+            <ContentPlanner onGenerate={(post) => setCurrentPostPlan(post)} />
           )}
           {activeTab === "generate" && <PostGenerator />}
           {activeTab === "posts" && (
