@@ -1,121 +1,73 @@
-# Brand Buddy AI
+# Welcome to your Lovable project
 
-An AI-powered social media content generation platform that helps brands create consistent, on-brand posts for LinkedIn and Instagram.
+## Project info
 
-## ✨ Features
+**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
 
-### 🎨 Brand Setup
-- **Brand Analysis**: AI-powered analysis of your company's voice, visual identity, and messaging patterns
-- **Voice Profiling**: Automatically detects tone, emoji usage, CTA style, and language patterns
-- **Visual Identity**: Captures brand colors, layout preferences, and typography style
+## How can I edit this code?
 
-### 📅 Content Planner
-- Plan posts with different intents: announcements, events, partnerships, achievements
-- Schedule content for LinkedIn, Instagram, or both platforms
-- Add custom tones and additional elements to each post
+There are several ways of editing your application.
 
-### 🤖 AI Post Generator
-- **Multi-Variation Generation**: Creates multiple post variations optimized for each platform
-- **Agentic Feedback Loop**: Internal AI review system that optimizes brand consistency, message clarity, CTA effectiveness, and text readability
-- **Quality Scoring**: Each variation receives a quality score with strengths and improvement suggestions
-- **Image Generation**: AI-generated images with text overlays matching your brand colors
+**Use Lovable**
 
-### 🔄 Post Iteration
-- Refine posts with feedback types: tone, wording, CTA, shorter, longer, or custom
-- Real-time improvements while maintaining brand voice
+Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
 
-## 🛠 Tech Stack
+Changes made via Lovable will be committed automatically to this repo.
 
-- **Frontend**: React 18, TypeScript, Vite
-- **Styling**: Tailwind CSS, shadcn/ui components
-- **State Management**: Zustand
-- **Backend**: Supabase Edge Functions
-- **AI**: Lovable AI Gateway (Gemini/GPT models)
-- **Authentication**: Supabase Auth
+**Use your preferred IDE**
 
-## 🚀 Getting Started
+If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
 
-### Prerequisites
-- Node.js 18+ installed
-- npm or bun package manager
+The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
 
-### Installation
+Follow these steps:
 
-```bash
-# Clone the repository
+```sh
+# Step 1: Clone the repository using the project's Git URL.
 git clone <YOUR_GIT_URL>
 
-# Navigate to project directory
+# Step 2: Navigate to the project directory.
 cd <YOUR_PROJECT_NAME>
 
-# Install dependencies
-npm install
+# Step 3: Install the necessary dependencies.
+npm i
 
-# Start development server
+# Step 4: Start the development server with auto-reloading and an instant preview.
 npm run dev
 ```
 
-The app will be available at `http://localhost:5173`
+**Edit a file directly in GitHub**
 
-## 📁 Project Structure
+- Navigate to the desired file(s).
+- Click the "Edit" button (pencil icon) at the top right of the file view.
+- Make your changes and commit the changes.
 
-```
-src/
-├── components/          # React components
-│   ├── ui/             # shadcn/ui components
-│   ├── AppSidebar.tsx  # Navigation sidebar
-│   ├── BrandSetup.tsx  # Brand configuration
-│   ├── ContentPlanner.tsx  # Post planning
-│   └── PostGenerator.tsx   # AI generation interface
-├── hooks/              # Custom React hooks
-│   ├── useAuth.tsx     # Authentication hook
-│   └── use-mobile.tsx  # Responsive detection
-├── lib/                # Utilities and services
-│   ├── ai-service.ts   # AI API integrations
-│   ├── store.ts        # Zustand state store
-│   └── utils.ts        # Helper functions
-├── pages/              # Route pages
-│   ├── Index.tsx       # Main dashboard
-│   ├── Auth.tsx        # Login/signup
-│   └── NotFound.tsx    # 404 page
-└── integrations/       # External integrations
-    └── supabase/       # Supabase client & types
+**Use GitHub Codespaces**
 
-supabase/
-└── functions/          # Edge Functions
-    ├── analyze-brand/  # Brand analysis AI
-    ├── generate-posts/ # Post generation AI
-    ├── feedback-loop/  # Quality review AI
-    ├── generate-image/ # Image generation
-    └── iterate-post/   # Post refinement AI
-```
+- Navigate to the main page of your repository.
+- Click on the "Code" button (green button) near the top right.
+- Select the "Codespaces" tab.
+- Click on "New codespace" to launch a new Codespace environment.
+- Edit files directly within the Codespace and commit and push your changes once you're done.
 
-## 🔐 Security
+## What technologies are used for this project?
 
-- JWT authentication on all Edge Functions
-- Sanitized error responses (no internal details exposed)
-- CORS restricted to allowed origins
-- Environment-based configuration
+This project is built with:
 
-## 📝 Usage
+- Vite
+- TypeScript
+- React
+- shadcn-ui
+- Tailwind CSS
 
-1. **Set Up Your Brand**: Enter your company details and let AI analyze your brand voice
-2. **Plan Content**: Create post plans with specific intents and target platforms
-3. **Generate Posts**: AI creates multiple variations with images and captions
-4. **Refine & Export**: Iterate on posts and export when satisfied
+## How can I deploy this project?
 
-## 🤝 Contributing
+Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+## Can I connect a custom domain to my Lovable project?
 
-## 📄 License
+Yes, you can!
 
-This project is private and proprietary.
+To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
----
-
-Built with [Lovable](https://lovable.dev)
+Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
