@@ -1,11 +1,20 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+// Input validation schema
+const analyzeBrandSchema = z.object({
+  companyName: z.string().min(1, "Company name is required").max(200, "Company name too long"),
+  website: z.string().url("Invalid URL format").optional().or(z.literal("")),
+  description: z.string().max(5000, "Description too long").optional(),
+  existingPosts: z.array(z.string().max(3000)).max(10, "Maximum 10 posts allowed").optional(),
+});
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -41,7 +50,28 @@ serve(async (req) => {
 
     console.log("Authenticated user:", authData.user.id);
 
-    const { companyName, website, description, existingPosts } = await req.json();
+    // Parse and validate input
+    let body;
+    try {
+      body = await req.json();
+    } catch {
+      return new Response(
+        JSON.stringify({ error: "Invalid JSON in request body" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const validation = analyzeBrandSchema.safeParse(body);
+    if (!validation.success) {
+      const errors = validation.error.errors.map(e => e.message).join(", ");
+      return new Response(
+        JSON.stringify({ error: `Invalid input: ${errors}` }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const { companyName, website, description, existingPosts } = validation.data;
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {

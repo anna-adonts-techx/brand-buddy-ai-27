@@ -1,11 +1,34 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+// Input validation schemas
+const variationSchema = z.object({
+  id: z.string().max(100),
+  caption: z.string().max(5000, "Caption too long"),
+  textOverlay: z.string().max(100).optional(),
+  imageDescription: z.string().max(2000).optional(),
+  platform: z.enum(["linkedin", "instagram", "both"]).optional(),
+  hashtags: z.array(z.string().max(100)).max(30).optional(),
+});
+
+const criterionSchema = z.object({
+  id: z.string().max(50),
+  name: z.string().max(100),
+  weight: z.number().min(0).max(1),
+});
+
+const feedbackLoopSchema = z.object({
+  variation: variationSchema,
+  brandProfile: z.record(z.unknown()).optional(),
+  criteria: z.array(criterionSchema).max(10).optional(),
+});
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -41,7 +64,28 @@ serve(async (req) => {
 
     console.log("Authenticated user:", authData.user.id);
 
-    const { variation, brandProfile, criteria } = await req.json();
+    // Parse and validate input
+    let body;
+    try {
+      body = await req.json();
+    } catch {
+      return new Response(
+        JSON.stringify({ error: "Invalid JSON in request body" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const validation = feedbackLoopSchema.safeParse(body);
+    if (!validation.success) {
+      const errors = validation.error.errors.map(e => `${e.path.join(".")}: ${e.message}`).join(", ");
+      return new Response(
+        JSON.stringify({ error: `Invalid input: ${errors}` }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const { variation, brandProfile, criteria } = validation.data;
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     if (!LOVABLE_API_KEY) {
@@ -67,7 +111,7 @@ Brand Profile:
 ${JSON.stringify(brandProfile || {}, null, 2)}
 
 Evaluation Criteria:
-${feedbackCriteria.map((c: any) => `- ${c.name} (${c.weight * 100}% weight)`).join("\n")}
+${feedbackCriteria.map((c) => `- ${c.name} (${c.weight * 100}% weight)`).join("\n")}
 
 For each criterion:
 1. Score from 0-100
@@ -156,7 +200,7 @@ Provide detailed feedback on each criterion and improvements if needed.`;
     } catch (parseError) {
       console.error("Failed to parse feedback");
       result = {
-        evaluations: feedbackCriteria.map((c: any) => ({
+        evaluations: feedbackCriteria.map((c) => ({
           criterion: c.name,
           score: 85,
           feedback: "Evaluation complete",

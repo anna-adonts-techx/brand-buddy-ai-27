@@ -1,11 +1,49 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+// Input validation schemas
+const postPlanSchema = z.object({
+  id: z.string().max(100).optional(),
+  title: z.string().min(1, "Title is required").max(500, "Title too long"),
+  intent: z.enum(["announcement", "event", "partnership", "achievement"]),
+  details: z.string().max(5000, "Details too long").optional(),
+  tone: z.string().max(200).optional(),
+  date: z.string().max(50).optional(),
+  additionalElements: z.string().max(2000).optional(),
+});
+
+const brandProfileSchema = z.object({
+  voice: z.object({
+    tone: z.string().max(500).optional(),
+    emojiUsage: z.string().max(50).optional(),
+    ctaStyle: z.string().max(500).optional(),
+    languagePatterns: z.array(z.string().max(200)).max(20).optional(),
+  }).optional(),
+  visualIdentity: z.object({
+    colors: z.array(z.string().max(20)).max(10).optional(),
+    layoutStyle: z.string().max(500).optional(),
+    typographyStyle: z.string().max(500).optional(),
+  }).optional(),
+  messagingPatterns: z.object({
+    themes: z.array(z.string().max(200)).max(20).optional(),
+    valueProps: z.array(z.string().max(200)).max(20).optional(),
+    targetAudience: z.string().max(500).optional(),
+  }).optional(),
+}).optional();
+
+const generatePostsSchema = z.object({
+  postPlan: postPlanSchema,
+  brandProfile: brandProfileSchema,
+  platform: z.enum(["linkedin", "instagram", "both"]),
+  feedbackHistory: z.array(z.string().max(2000)).max(10).optional(),
+});
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -41,7 +79,28 @@ serve(async (req) => {
 
     console.log("Authenticated user:", authData.user.id);
 
-    const { postPlan, brandProfile, platform, feedbackHistory } = await req.json();
+    // Parse and validate input
+    let body;
+    try {
+      body = await req.json();
+    } catch {
+      return new Response(
+        JSON.stringify({ error: "Invalid JSON in request body" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const validation = generatePostsSchema.safeParse(body);
+    if (!validation.success) {
+      const errors = validation.error.errors.map(e => `${e.path.join(".")}: ${e.message}`).join(", ");
+      return new Response(
+        JSON.stringify({ error: `Invalid input: ${errors}` }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const { postPlan, brandProfile, platform, feedbackHistory } = validation.data;
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     if (!LOVABLE_API_KEY) {
